@@ -1,5 +1,7 @@
 # GPU_Image_Filtering
 
+jade lilian | lan kung | eva gitardi
+
 Title: graphicalRenderSim
 
 With our current understanding of CUDA, we aim to compare multiple simulations of photo rendering. This will allow us to gain a better understanding of the communication between CPU and GPU as the program processes photo data line by line to eventually come out with a fully rendered image. We will experiment with file types (for example, jpg vs png) and image dimensions and see how the program’s efficiency changes and where CUDA’s strengths in image processing may lie.
