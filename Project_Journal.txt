@@ -1,0 +1,6 @@
+DAY 1 - 11/14/24 - 1:30 PM - 3:30 PM
+
+- Initialized C and CUDA files for Image Reading
+- Selected a test image (glorp) and converted from png to jpeg to bmp
+- Researched potential libraries to use in order to obtain RGB values of imported images
+- Finalized plans and procedures - we will be applying greyscale filtering, and possibly more filters in the future (blurring, etc)
