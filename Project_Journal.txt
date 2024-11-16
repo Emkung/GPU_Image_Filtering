@@ -4,3 +4,7 @@ DAY 1 - 11/14/24 - 1:30 PM - 3:30 PM
 - Selected a test image (glorp) and converted from png to jpeg to bmp
 - Researched potential libraries to use in order to obtain RGB values of imported images
 - Finalized plans and procedures - we will be applying greyscale filtering, and possibly more filters in the future (blurring, etc)
+
+DAY 2 - 11/16/24 - 11:00 AM - 12:00 PM
+
+- Worked on C image reader, specifically metadata checker, referencing a video by Nick Walton titled, "Load .BMP Images in C"
