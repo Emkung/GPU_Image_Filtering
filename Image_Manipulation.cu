@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#define SIZE 250
 #include <sys/time.h>
+
+#define SIZE 250
 
 int i;
 int N;
