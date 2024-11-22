@@ -8,3 +8,7 @@ DAY 1 - 11/14/24 - 1:30 PM - 3:30 PM
 DAY 2 - 11/16/24 - 11:00 AM - 12:00 PM
 
 - Worked on C image reader, specifically metadata checker, referencing a video by Nick Walton titled, "Load .BMP Images in C"
+
+DAY 3 - 11/22/24 - 11:00 AM - 12:00 PM
+
+- Worked on debugging C image reader, and planning ahead for further GPU development
