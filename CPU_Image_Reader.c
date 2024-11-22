@@ -1,5 +1,10 @@
-#include <file.h>
+//#include <file.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
+
+#define PRINT_ERROR(a, args...) printf("ERROR %s() %s Line %d: " a "\n", __FUNCTION__, __FILE__, __LINE__, ##args);
 
 typedef struct {
   unsigned char a, r, g, b;
@@ -30,7 +35,7 @@ bool loadFile(sprite *sprite, const char *filename){
       fseek(file, 8, SEEK_CUR);
       fread(&image_data_address, 4, 1, file);
       fseek(file, 4, SEEK_CUR);
-      fseek(&width, 4, 1, file);
+      fread(&width, 4, 1, file);
       fread(&height, 4, 1, file);
       fseek(file, 2, SEEK_CUR);
       fread(&bit_depth, 2, 1, file);
@@ -56,7 +61,7 @@ bool loadFile(sprite *sprite, const char *filename){
 
 	  else { // error here
 	    PRINT_ERROR("(%s) expected %d pixels, read %d\n", filename, pixel_count, pixels_read);
-	    free(pixels)
+	    free(pixels);
 	    return_v = false;
 	  }
 
@@ -68,21 +73,26 @@ bool loadFile(sprite *sprite, const char *filename){
 	  return_v = false;
 	}
       }
-
-      else { // error here
-	PRINT_ERROR("(%s) first two bytes not `BM`\n", filename, pixel);
-	return_v = false;
-      }
-
-      fclose(file);
     }
     
     else { // error here
-      PRINT_ERROR("(%s) failed to open file\n", filename, pixel);
+      PRINT_ERROR("(%s) first two bytes not `BM`\n", filename);
       return_v = false;
     }
     
+    fclose(file);
+  }
+    
+  else { // error here
+    PRINT_ERROR("(%s) failed to open file\n", filename);
+    return_v = false;
   }
   
   return return_v;
+}
+
+int main(int argc, char *argv[]){
+  static sprite sprite;
+  loadFile(&sprite, argv[1]);
+  return 0;
 }
