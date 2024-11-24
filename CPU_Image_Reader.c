@@ -7,13 +7,13 @@
 #define PRINT_ERROR(a, args...) printf("ERROR %s() %s Line %d: " a "\n", __FUNCTION__, __FILE__, __LINE__, ##args);
 
 typedef struct {
-  unsigned char a, r, g, b;
+  int r, g, b;
 } pixel;
 
 typedef struct {
   union { int width, w; };
   union { int height, h; };
-  union { uint32_t *pixels, *p; };
+  union { struct pixel *pixels, *p; };
 } sprite;
 
 
@@ -28,7 +28,7 @@ bool loadFile(sprite *sprite, const char *filename){
   uint32_t pixel_count; // HOW MANY THINGS TO READ
   uint16_t bit_depth; // some kind of error handling
   uint8_t byte_depth; // bytes in a pixel
-  uint32_t *pixels; // what we actually wanna return
+  struct pixel *pixels; // what we actually wanna return
 
   if (file) {
     if ( fgetc(file) == 'B' && fgetc(file) == 'M' ) { // confirm bitmap file
@@ -40,7 +40,7 @@ bool loadFile(sprite *sprite, const char *filename){
       fseek(file, 2, SEEK_CUR);
       fread(&bit_depth, 2, 1, file);
 
-      if ( bit_depth != 32 ) { // error here
+      if ( bit_depth != 24 ) { // error here
 	PRINT_ERROR("(%s) bit depth\tEXP: 32\tOUT: %d\n", filename, bit_depth);
 	return_v = false;
       }
