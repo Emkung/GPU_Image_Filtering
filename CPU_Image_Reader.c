@@ -7,18 +7,18 @@
 #define PRINT_ERROR(a, args...) printf("ERROR %s() %s Line %d: " a "\n", __FUNCTION__, __FILE__, __LINE__, ##args);
 
 typedef struct {
-  int r, g, b;
+  uint8_t r, g, b;
 } pixel;
 
 typedef struct {
   union { int width, w; };
   union { int height, h; };
-  union { struct pixel *pixels, *p; };
+  union { pixel *pixels, *p; };
 } sprite;
 
 
-bool loadFile(sprite *sprite, const char *filename){
-  bool return_v = true;
+int loadFile(sprite *sprite, const char *filename){
+  int return_v = 0;
   FILE *file;
   file = fopen(filename, "rb");
 
@@ -28,7 +28,7 @@ bool loadFile(sprite *sprite, const char *filename){
   uint32_t pixel_count; // HOW MANY THINGS TO READ
   uint16_t bit_depth; // some kind of error handling
   uint8_t byte_depth; // bytes in a pixel
-  struct pixel *pixels; // what we actually wanna return
+  pixel *pixels; // what we actually wanna return
 
   if (file) {
     if ( fgetc(file) == 'B' && fgetc(file) == 'M' ) { // confirm bitmap file
@@ -42,42 +42,53 @@ bool loadFile(sprite *sprite, const char *filename){
 
       if ( bit_depth != 24 ) { // error here
 	PRINT_ERROR("(%s) bit depth\tEXP: 32\tOUT: %d\n", filename, bit_depth);
-	return_v = false;
       }
       else {
 	pixel_count = width * height;
 	byte_depth = bit_depth / 8;
-	pixels = malloc(pixel_count * byte_depth);
+	uint8_t *rgbs = malloc(pixel_count * byte_depth);
+	pixels = malloc(pixel_count * sizeof(pixel));
 
-	if(pixels) {
+	if(pixels && rgbs) {
 	  fseek(file, image_data_address, SEEK_SET);
-	  int pixels_read = fread(pixels, byte_depth, pixel_count, file); // stores the number of pixels actually read
+
+	  int pixels_read = fread(rgbs, byte_depth, pixel_count, file); // stores the number of pixels actually read
 
 	  if (pixels_read == pixel_count) {
+
+	    for(int i = 0; i < pixel_count; i++){
+	      pixel px;
+	      px.r = rgbs[3*i];
+	      px.g = rgbs[3*i+1];
+	      px.b = rgbs[3*i+2];
+	      pixels[i] = px;
+	    }
+
 	    sprite->w = width;
 	    sprite->h = height;
 	    sprite->p = pixels;
+	    return_v = pixels_read;
 	  }
+	  
 
 	  else { // error here
 	    PRINT_ERROR("(%s) expected %d pixels, read %d\n", filename, pixel_count, pixels_read);
-	    free(pixels);
-	    return_v = false;
 	  }
 
+	  free(rgbs);
 	  free(pixels);
 	}
 
 	else { // error here
 	  PRINT_ERROR("(%s) malloc failure for %d pixels\n", filename, pixel_count);
-	  return_v = false;
+	  if (pixels) {	free(pixels); }
+	  if (rgbs) { free(rgbs); }
 	}
       }
     }
     
     else { // error here
       PRINT_ERROR("(%s) first two bytes not `BM`\n", filename);
-      return_v = false;
     }
     
     fclose(file);
@@ -85,7 +96,6 @@ bool loadFile(sprite *sprite, const char *filename){
     
   else { // error here
     PRINT_ERROR("(%s) failed to open file\n", filename);
-    return_v = false;
   }
   
   return return_v;
@@ -93,6 +103,12 @@ bool loadFile(sprite *sprite, const char *filename){
 
 int main(int argc, char *argv[]){
   static sprite sprite;
-  loadFile(&sprite, argv[1]);
+  int pixels_read = loadFile(&sprite, argv[1]);
+  printf("%d\n", pixels_read);
+
+  for (int i = 0; i < pixels_read; i++) {
+    pixel pixel = sprite.p[i];
+    printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
+  }
   return 0;
 }
