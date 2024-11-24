@@ -12,3 +12,11 @@ DAY 2 - 11/16/24 - 11:00 AM - 12:00 PM
 DAY 3 - 11/22/24 - 11:00 AM - 12:00 PM
 
 - Worked on debugging C image reader, and planning ahead for further GPU development
+
+DAY 4 - 11/14/24 - 4:00 PM - 6:00 PM
+
+- Tested the CPU reader with various image sizes
+
+- Ran into bug causing reader to seg fault at a certain stage of reading images -> usually in 90,000 mark
+
+- Got RGB values to be accurately recorded and printed
