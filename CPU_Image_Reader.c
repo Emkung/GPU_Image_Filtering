@@ -13,7 +13,8 @@ typedef struct {
 typedef struct {
   union { int width, w; };
   union { int height, h; };
-  union { pixel *pixels, *p; };
+  union { uint8_t *pixels, *p; };
+  union { uint8_t bytesPerPixel, bpp; };
 } sprite;
 
 /**
@@ -21,16 +22,16 @@ typedef struct {
 @param *writefile The string name of the file to write out to
 @param depth Bytes per pixel (3 for RGB pixels, 4 for RGBA pixels)
  */
-boolean writeFile(sprite *sprite, const int depth, const char *writeFile) {
+bool writeFile(sprite *sprite, const int depth, const char *writeFile) {
   int return_v = false;
 
-  int spriteSize = sprite.w * sprite.h * depth;
+  int spriteSize = sprite->w * sprite->h * depth;
   int fileSize = 2 + 13*sizeof(uint32_t) + spriteSize; // tag size + header size + sprite size
   char tag[] = { 'B', 'M' };
   uint32_t header[] = {
     fileSize, 0x00, 0x36, // size of file, irrelevant, location in file where pixels start
     0x28, // size of header beyond previous line
-    sprite.w, sprite.h, // what it says
+    sprite->w, sprite->h, // what it says
     0x180001, // 24 bits/pixel (0x18), and then 1 color plane (unsure what that means)
     0, // no compression mode
     0, // this would be the image size in bytes if we were compressing
@@ -39,9 +40,10 @@ boolean writeFile(sprite *sprite, const int depth, const char *writeFile) {
   };
 
 
-  FILE *file = fopen(*writeFile, "w+");
+  FILE *file = fopen(writeFile, "w+");
   
   fclose(file);
+  return return_v;
 }
 
 
@@ -56,7 +58,8 @@ int loadFile(sprite *sprite, const char *filename){
   uint32_t pixel_count; // HOW MANY THINGS TO READ
   uint16_t bit_depth; // some kind of error handling
   uint8_t byte_depth; // bytes in a pixel
-  pixel *pixels; // what we actually wanna return
+  //pixel *pixels; // what we actually wanna return
+  uint8_t *pixels; // every pixel has 3 8-bit ints
 
   if (file) {
     if ( fgetc(file) == 'B' && fgetc(file) == 'M' ) { // confirm bitmap file
@@ -74,27 +77,29 @@ int loadFile(sprite *sprite, const char *filename){
       else {
 	pixel_count = width * height;
 	byte_depth = bit_depth / 8;
-	uint8_t *rgbs = malloc(pixel_count * byte_depth);
-	pixels = malloc(pixel_count * sizeof(pixel));
+	//uint8_t *rgbs = malloc(pixel_count * byte_depth);
+	//pixels = malloc(pixel_count * sizeof(pixel));
+	pixels = malloc(pixel_count*sizeof(pixel));
 
-	if(pixels && rgbs) {
+	if(pixels) {
 	  fseek(file, image_data_address, SEEK_SET);
 
-	  int pixels_read = fread(rgbs, byte_depth, pixel_count, file); // stores the number of pixels actually read
+	  int pixels_read = fread(pixels, byte_depth, pixel_count, file); // stores the number of pixels actually read
 
 	  if (pixels_read == pixel_count) {
 
-	    for(int i = 0; i < pixel_count; i++){
-	      pixel px;
-	      px.b = rgbs[3*i];
-	      px.g = rgbs[3*i+1];
-	      px.r = rgbs[3*i+2];
-	      pixels[i] = px;
-	    }
+	    //for(int i = 0; i < pixel_count; i++){
+	      //pixel px;
+	      //px.b = rgbs[3*i];
+	      //px.g = rgbs[3*i+1];
+	      //px.r = rgbs[3*i+2];
+	      //pixels[i] = px;
+	    //}
 
 	    sprite->w = width;
 	    sprite->h = height;
 	    sprite->p = pixels;
+	    sprite->bpp = byte_depth;
 	    return_v = pixels_read;
 	  }
 
@@ -103,14 +108,14 @@ int loadFile(sprite *sprite, const char *filename){
 	    free(pixels);
 	  }
 
-	  free(rgbs);
+	  //free(rgbs);
 	  // free(pixels);
 	}
 
 	  else { // error here
 	    PRINT_ERROR("(%s) malloc failure for %d pixels\n", filename, pixel_count);
 	    if (pixels) { free(pixels);}
-	    if (rgbs) { free(rgbs);}
+	    //if (rgbs) { free(rgbs);}
 	  }
         }
       }
@@ -134,8 +139,8 @@ int main(int argc, char *argv[]){
   printf("%d\n", pixels_read);
 
   for (int i = 0; i < pixels_read; i++) {
-    pixel pixel = sprite.p[i];
-    printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
+    int pxIdx = i*sprite.bpp;
+    printf("R: %d,   G: %d,   B: %d\n", sprite.p[pxIdx+2], sprite.p[pxIdx+1], sprite.p[pxIdx]);
   }
   free(sprite.p);
   return 0;
