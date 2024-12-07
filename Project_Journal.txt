@@ -13,10 +13,19 @@ DAY 3 - 11/22/24 - 11:00 AM - 12:00 PM
 
 - Worked on debugging C image reader, and planning ahead for further GPU development
 
-DAY 4 - 11/14/24 - 4:00 PM - 6:00 PM
+DAY 4 - 11/24/24 - 4:00 PM - 6:00 PM
 
 - Tested the CPU reader with various image sizes
 
 - Ran into bug causing reader to seg fault at a certain stage of reading images -> usually in 90,000 mark
 
 - Got RGB values to be accurately recorded and printed
+
+DAY 5 = 12/02/24 - 8:00 PM - 9:00 PM
+- Worked on the flow and info of the presentation
+- Finalized and practiced individual parts of the presentation
+
+DAY 6 - 12/07/24 - 2:00 PM - 4:00 PM
+- Reworked the CPU code to produce records of the pixels in the 32 bits
+- Fixes segfault bug within the CPU code
+- Brain storms and adds more starter in teh GPU code
