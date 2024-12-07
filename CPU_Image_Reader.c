@@ -109,12 +109,8 @@ int loadFile(sprite *sprite, const char *filename){
 
 	  else { // error here
 	    PRINT_ERROR("(%s) malloc failure for %d pixels\n", filename, pixel_count);
-	    if (pixels) {
-	      free(pixels);
-	    }
-	    if (rgbs) {
-	      free(rgbs); 
-	    }
+	    if (pixels) { free(pixels);}
+	    if (rgbs) { free(rgbs);}
 	  }
         }
       }
