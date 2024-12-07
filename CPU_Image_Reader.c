@@ -69,31 +69,34 @@ int loadFile(sprite *sprite, const char *filename){
 	    sprite->p = pixels;
 	    return_v = pixels_read;
 	  }
-	  
 
 	  else { // error here
 	    PRINT_ERROR("(%s) expected %d pixels, read %d\n", filename, pixel_count, pixels_read);
+	    free(pixels);
 	  }
 
 	  free(rgbs);
-	  free(pixels);
+	  // free(pixels);
 	}
 
-	else { // error here
-	  PRINT_ERROR("(%s) malloc failure for %d pixels\n", filename, pixel_count);
-	  if (pixels) {	free(pixels); }
-	  if (rgbs) { free(rgbs); }
-	}
+	  else { // error here
+	    PRINT_ERROR("(%s) malloc failure for %d pixels\n", filename, pixel_count);
+	    if (pixels) {
+	      free(pixels);
+	    }
+	    if (rgbs) {
+	      free(rgbs); 
+	    }
+	  }
+        }
       }
-    }
-    
+  
     else { // error here
       PRINT_ERROR("(%s) first two bytes not `BM`\n", filename);
     }
-    
+	
     fclose(file);
-  }
-    
+  }  
   else { // error here
     PRINT_ERROR("(%s) failed to open file\n", filename);
   }
@@ -110,5 +113,6 @@ int main(int argc, char *argv[]){
     pixel pixel = sprite.p[i];
     printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
   }
+  free(sprite.p);
   return 0;
 }
