@@ -1,24 +1,29 @@
-#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
-#include <sys/time.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 #define SIZE 250
 
-int i;
-int N;
+typedef struct {
+  uint8_t r, g, b;
+} pixel;
 
- __global__ void MatrixMulOnDevice(float* A, float* B, float* C, int Width) {
-   for (int i = 0; i < Width; ++i) {
-     for (int j = 0; j < Width; ++j) {
-       float sum = 0;
-       for (int k = 0; k < Width; ++k) {
-         float a = A[i * Width + k];
-	 float b = B[k * Width + j];
-	 sum += a * b;
-       }
-       C[i * Width + j] = sum;
-     }
+typedef struct {
+  union { int width, w; };
+  union { int height, h; };
+  union { pixel *pixels, *p; };
+} sprite;
+
+
+int loadFile(sprite *sprite, const char *filename){}
+
+//NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
+__global__ void RGB_To_Greyscale(int pixels) { //takes in return_v from c file
+   int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
+   for (int i = 0; i < pixels_read; i++) {
+       pixel pixel = sprite.p[i];
+       printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
    }
 }
 
@@ -27,9 +32,9 @@ int main() {
   int size = SIZE;
 
   float *x, *y, *z;
-    cudaMallocManaged(&x, SIZE*sizeof(float) * size * size);
-    cudaMallocManaged(&y, SIZE*sizeof(float) * size * size);
-    cudaMallocManaged(&z, SIZE*sizeof(float) * size * size);
+  cudaMallocManaged(&x, SIZE*sizeof(float) * size * size);
+  cudaMallocManaged(&y, SIZE*sizeof(float) * size * size);
+  cudaMallocManaged(&z, SIZE*sizeof(float) * size * size);
 
   for (int i = 0; i < size; i++) {
     for (int j = 0; j < size; j++) {
