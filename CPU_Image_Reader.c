@@ -16,6 +16,34 @@ typedef struct {
   union { pixel *pixels, *p; };
 } sprite;
 
+/**
+@param *sprite The pointer to a sprite object that needs to be exported
+@param *writefile The string name of the file to write out to
+@param depth Bytes per pixel (3 for RGB pixels, 4 for RGBA pixels)
+ */
+boolean writeFile(sprite *sprite, const int depth, const char *writeFile) {
+  int return_v = false;
+
+  int spriteSize = sprite.w * sprite.h * depth;
+  int fileSize = 2 + 13*sizeof(uint32_t) + spriteSize; // tag size + header size + sprite size
+  char tag[] = { 'B', 'M' };
+  uint32_t header[] = {
+    fileSize, 0x00, 0x36, // size of file, irrelevant, location in file where pixels start
+    0x28, // size of header beyond previous line
+    sprite.w, sprite.h, // what it says
+    0x180001, // 24 bits/pixel (0x18), and then 1 color plane (unsure what that means)
+    0, // no compression mode
+    0, // this would be the image size in bytes if we were compressing
+    0x00002e23, 0x00002e23, // these are for display resolution of the image. used an arbitrary sample from a file
+    0, 0 // no special color space, all colors are relevant
+  };
+
+
+  FILE *file = fopen(*writeFile, "w+");
+  
+  fclose(file);
+}
+
 
 int loadFile(sprite *sprite, const char *filename){
   int return_v = 0;
@@ -58,9 +86,9 @@ int loadFile(sprite *sprite, const char *filename){
 
 	    for(int i = 0; i < pixel_count; i++){
 	      pixel px;
-	      px.r = rgbs[3*i];
+	      px.b = rgbs[3*i];
 	      px.g = rgbs[3*i+1];
-	      px.b = rgbs[3*i+2];
+	      px.r = rgbs[3*i+2];
 	      pixels[i] = px;
 	    }
 
