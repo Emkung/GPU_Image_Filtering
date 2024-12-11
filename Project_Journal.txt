@@ -37,3 +37,7 @@ DAY 7 - 12/08/23 - 4:00 PM - 5:00 PM
 
 DAY 7 - 12/11/24 - 4:00 PM - 6:00 PM
 - nvcc CPU_Image_Reader.c Image_Manipulation.cu -o ImageMan
+- Started work on group project report
+- Got C to compile in nvcc using extern command
+- Get all pixels in one array in Cuda
+- Starting GPU method and made RGB values' reading processes consistent across the CPU Reader
