@@ -4,16 +4,11 @@
 #include <stdio.h>
 
 typedef struct {
-  uint8_t r, g, b;
-} pixel;
-
-typedef struct {
   union { int width, w; };
   union { int height, h; };
   union { uint8_t *pixels, *p; };
   union { uint8_t bytesPerPixel, bpp; };
 } sprite;
-
 
 extern "C" int loadFile(sprite *sprite, const char *filename);
 
@@ -38,9 +33,9 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < pixels_read; i++) {
     int pxIdx = i*sprite.bpp;
-    x[pxIdx] = sprite.p[pxIdx+2];
+    x[pxIdx] = sprite.p[pxIdx];
     x[pxIdx + 1] = sprite.p[pxIdx+1];
-    x[pxIdx + 2] = sprite.p[pxIdx]; 
+    x[pxIdx + 2] = sprite.p[pxIdx+2]; 
 //    printf("R: %d,   G: %d,   B: %d\n", sprite.p[pxIdx+2], sprite.p[pxIdx+1], sprite.p[pxIdx]);
   }
 //  printf("\n");
