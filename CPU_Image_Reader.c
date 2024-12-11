@@ -41,6 +41,11 @@ bool writeFile(sprite *sprite, const int depth, const char *writeFile) {
 
 
   FILE *file = fopen(writeFile, "w+");
+
+  fwrite(tag, sizeof(char), 2, file);
+  fwrite(header, sizeof(header), 1, file);
+
+  
   
   fclose(file);
   return return_v;
@@ -87,15 +92,6 @@ int loadFile(sprite *sprite, const char *filename){
 	  int pixels_read = fread(pixels, byte_depth, pixel_count, file); // stores the number of pixels actually read
 
 	  if (pixels_read == pixel_count) {
-
-	    //for(int i = 0; i < pixel_count; i++){
-	      //pixel px;
-	      //px.b = rgbs[3*i];
-	      //px.g = rgbs[3*i+1];
-	      //px.r = rgbs[3*i+2];
-	      //pixels[i] = px;
-	    //}
-
 	    sprite->w = width;
 	    sprite->h = height;
 	    sprite->p = pixels;
