@@ -38,24 +38,26 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < pixels_read; i++) {
     int pxIdx = i*sprite.bpp;
-    x[i*3] = sprite.p[pxIdx+2];
-    x[i*3 + 1] = sprite.p[pxIdx+1];
-    x[i*3 + 2] = sprite.p[pxIdx]; 
-    //printf("R: %d,   G: %d,   B: %d\n", sprite.p[pxIdx+2], sprite.p[pxIdx+1], sprite.p[pxIdx]);
+    x[pxIdx] = sprite.p[pxIdx+2];
+    x[pxIdx + 1] = sprite.p[pxIdx+1];
+    x[pxIdx + 2] = sprite.p[pxIdx]; 
+//    printf("R: %d,   G: %d,   B: %d\n", sprite.p[pxIdx+2], sprite.p[pxIdx+1], sprite.p[pxIdx]);
   }
-  free(sprite.p);
-  printf("\n");
+//  printf("\n");
 
   //MatrixMulOnDevice<<<1, 128>>>(x, y, z, size);
 
   printf("%s\n", cudaGetErrorString(cudaGetLastError()));
 
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
 
   for (int i = 0; i < size; i++) {
-      printf("%f ", x[i]);
+      printf("%d ", x[i]);
   }
-
+  printf("\n");
+  //printf("%d ", sprite.bpp);
+//  printf("\n");
+  free(sprite.p);
   cudaFree(x);
 
   return 0;
