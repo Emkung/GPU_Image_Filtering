@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define SIZE 250
-
 typedef struct {
   uint8_t r, g, b;
 } pixel;
@@ -12,60 +10,55 @@ typedef struct {
 typedef struct {
   union { int width, w; };
   union { int height, h; };
-  union { pixel *pixels, *p; };
+  union { uint8_t *pixels, *p; };
+  union { uint8_t bytesPerPixel, bpp; };
 } sprite;
 
 
-int loadFile(sprite *sprite, const char *filename){}
+extern "C" int loadFile(sprite *sprite, const char *filename);
+
+extern "C" bool writeFile(sprite *sprite, const int depth, const char *writeFile);
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
-__global__ void RGB_To_Greyscale(int pixels) { //takes in return_v from c file
-   int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
-   for (int i = 0; i < pixels_read; i++) {
-       pixel pixel = sprite.p[i];
-       printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
-   }
-}
+//__global__ void RGB_To_Greyscale(int pixels) { //takes in return_v from c file
+//   int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
+  // for (int i = 0; i < pixels_read; i++) {
+    //   pixel pixel = sprite.p[i];
+      // printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
+  // }
+//}
 
-int main() {
+int main(int argc, char *argv[]) {
+  static sprite sprite;
+  int pixels_read = loadFile(&sprite, argv[1]);
+  int size = pixels_read*3;
+  int *x;
+  cudaMallocManaged(&x, sizeof(size) * size);
+  printf("%d\n", pixels_read);
 
-  int size = SIZE;
-
-  float *x, *y, *z;
-  cudaMallocManaged(&x, SIZE*sizeof(float) * size * size);
-  cudaMallocManaged(&y, SIZE*sizeof(float) * size * size);
-  cudaMallocManaged(&z, SIZE*sizeof(float) * size * size);
-
-  for (int i = 0; i < size; i++) {
-    for (int j = 0; j < size; j++) {
-      x[i * size + j] = 1; // x[i][j]
-      y[i * size + j] = 1;
-    }
-  printf("\n");
+  for (int i = 0; i < pixels_read; i++) {
+    int pxIdx = i*sprite.bpp;
+    x[pxIdx] = sprite.p[pxIdx+2];
+    x[pxIdx + 1] = sprite.p[pxIdx+1];
+    x[pxIdx + 2] = sprite.p[pxIdx]; 
+//    printf("R: %d,   G: %d,   B: %d\n", sprite.p[pxIdx+2], sprite.p[pxIdx+1], sprite.p[pxIdx]);
   }
+//  printf("\n");
 
-  MatrixMulOnDevice<<<1, 128>>>(x, y, z, size);
+  //MatrixMulOnDevice<<<1, 128>>>(x, y, z, size);
 
   printf("%s\n", cudaGetErrorString(cudaGetLastError()));
 
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
 
   for (int i = 0; i < size; i++) {
-    for (int j = 0; j < size; j++) {
-      printf("%f ", z[i * size + j]);
-      if (z[i * size + j] != size) {
-        printf("Error at z[%d][%d]: %f\n", i, j, z[i * size + j]);
-      }
-    }
-    printf("\n");
+      printf("%d ", x[i]);
   }
-
+  printf("\n");
+  //printf("%d ", sprite.bpp);
+//  printf("\n");
+  free(sprite.p);
   cudaFree(x);
-  cudaFree(y);
-  cudaFree(z);
-
-  double t1 = get_clock();
-  printf("time per call: %f\n", t1 - t0);
 
   return 0;
 }
