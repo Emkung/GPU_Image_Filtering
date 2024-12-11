@@ -133,15 +133,15 @@ int loadFile(sprite *sprite, const char *filename){
   return return_v;
 }
 
-int main(int argc, char *argv[]){
-  static sprite sprite;
-  int pixels_read = loadFile(&sprite, argv[1]);
-  printf("%d\n", pixels_read);
-
-  for (int i = 0; i < pixels_read; i++) {
-    int pxIdx = i*sprite.bpp;
-    printf("R: %d,   G: %d,   B: %d\n", sprite.p[pxIdx+2], sprite.p[pxIdx+1], sprite.p[pxIdx]);
-  }
-  free(sprite.p);
-  return 0;
-}
+//int main(int argc, char *argv[]){
+//  static sprite sprite;
+//  int pixels_read = loadFile(&sprite, argv[1]);
+//  printf("%d\n", pixels_read);
+//
+//  for (int i = 0; i < pixels_read; i++) {
+//    int pxIdx = i*sprite.bpp;
+//    printf("R: %d,   G: %d,   B: %d\n", sprite.p[pxIdx+2], sprite.p[pxIdx+1], sprite.p[pxIdx]);
+//  }
+//  free(sprite.p);
+//  return 0;
+//}

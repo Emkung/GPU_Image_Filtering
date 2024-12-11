@@ -33,4 +33,7 @@ DAY 6 - 12/07/24 - 2:00 PM - 4:00 PM
 DAY 7 - 12/08/23 - 4:00 PM - 5:00 PM
 - Confirmed CPU Reader can properly read RGB values of non-square images
 - Brainstormed ways to convert resulting image into a jpeg and then project jpeg via 'start' method in command prompt
-  - May utilize external library 'libjpeg'
+- May utilize external library 'libjpeg'
+
+DAY 7 - 12/11/24 - 4:00 PM - 6:00 PM
+- nvcc CPU_Image_Reader.c Image_Manipulation.cu -o ImageMan
