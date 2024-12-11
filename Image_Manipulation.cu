@@ -20,19 +20,20 @@ extern "C" int loadFile(sprite *sprite, const char *filename);
 extern "C" bool writeFile(sprite *sprite, const int depth, const char *writeFile);
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
-//__global__ void RGB_To_Greyscale(int pixels) { //takes in return_v from c file
-//   int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
-  // for (int i = 0; i < pixels_read; i++) {
+__global__ void RGB_To_Greyscale(int* pixels_rgb_arr, int* output, int size) { //takes in arr with rgb values
+   int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
+   for (int i = 0; i < pixels_read; i++) {
     //   pixel pixel = sprite.p[i];
       // printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
-  // }
-//}
+   }
+}
 
 int main(int argc, char *argv[]) {
   static sprite sprite;
   int pixels_read = loadFile(&sprite, argv[1]);
   int size = pixels_read*3;
-  int *x;
+  int *x, *y;
+  cudaMallocManaged(&x, sizeof(size) * size);
   cudaMallocManaged(&x, sizeof(size) * size);
   printf("%d\n", pixels_read);
 
