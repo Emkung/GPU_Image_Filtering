@@ -24,6 +24,7 @@ typedef struct {
 @param *writefile The string name of the file to write out to
  */
 bool writeFile(sprite *sprite, const char *writeFile) {
+  bool return_v = true;
 
   int spriteSize = sprite->w * sprite->h * sprite->bpp;
   int fileSize = 2 + 13*sizeof(uint32_t) + spriteSize; // tag size + header size + sprite size
@@ -36,7 +37,7 @@ bool writeFile(sprite *sprite, const char *writeFile) {
     0x180001, // 24 bits/pixel (0x18), and then 1 color plane (unsure what that means)
     0, // no compression mode
     0, // this would be the image size in bytes if we were compressing
-    0x00002e23, 0x00002e23, // these are for display resolution of the image. used an arbitrary sample from a file
+    0x00002e23, 0x00002e23, // for display resolution of the image. used arbitrary sample from a file
     0, 0 // no special color space, all colors are relevant
   };
 
@@ -44,10 +45,16 @@ bool writeFile(sprite *sprite, const char *writeFile) {
 
   fwrite(tag, sizeof(char), 2, file);
   fwrite(header, sizeof(header), 1, file);
-  fwrite(sprite->p, sizeof(uint8_t), spriteSize, file);
+  int bytes_wrote = fwrite(sprite->p, sizeof(uint8_t), spriteSize, file);
+  int pixels_wrote = bytes_wrote / sprite->bpp;
+
+  if (bytes_wrote != spriteSize) {
+    PRINT_ERROR("expected %d bytes, wrote %d (%d pixels)!\n", spriteSize, bytes_wrote, pixels_wrote);
+    return_v = false;
+  }
   
   fclose(file);
-  return true;
+  return return_v;
 }
 
 
@@ -75,7 +82,7 @@ int loadFile(sprite *sprite, const char *filename){
       fread(&bit_depth, 2, 1, file);
 
       if ( bit_depth != 24 ) { // error here
-	PRINT_ERROR("(%s) bit depth\tEXP: 32\tOUT: %d\n", filename, bit_depth);
+	PRINT_ERROR("(%s) bit depth\tEXP: 24\tOUT: %d\n", filename, bit_depth);
       }
       else {
 	pixel_count = width * height;
