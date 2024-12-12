@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
   }
 
   bool wrote = writeFile(&sprite, "write_test.bmp");
-  wrote ? printf("\nSuccess!\n") : ("\nNeeds Debugging T-T\n");
+  wrote ? printf("\nSuccess!\n") : printf("\nNeeds Debugging T-T\n");
   
   free(sprite.p);
   return 0;

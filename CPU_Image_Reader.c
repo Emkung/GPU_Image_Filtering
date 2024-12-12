@@ -80,7 +80,7 @@ int loadFile(sprite *sprite, const char *filename){
       else {
 	pixel_count = width * height;
 	byte_depth = bit_depth / 8;
-	pixels = malloc(pixel_count*sizeof(pixel));
+	pixels = malloc(pixel_count*byte_depth);
 
 	if(pixels) {
 	  fseek(file, image_data_address, SEEK_SET);
