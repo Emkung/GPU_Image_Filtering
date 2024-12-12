@@ -15,10 +15,10 @@ extern "C" int loadFile(sprite *sprite, const char *filename);
 extern "C" bool writeFile(sprite *sprite, const char *writeFile);
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
-__global__ void RGBToGreyscale(int* pixels_rgb_arr, int* output, int size) { //takes in arr with rgb values
+__global__ void RGBToGreyscale(uint8_t* pixels_rgb_arr, uint8_t* output, int size) { //takes in arr with rgb values
    int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
    if (cur_index%3 == 0){
-    int greyVal = 0.114*pixels_rgb_arr[cur_index] + 0.587 * pixels_rgb_arr[cur_index + 1] + 0.299 * pixels_rgb_arr[cur_index + 2];
+    uint8_t greyVal = 0.114*pixels_rgb_arr[cur_index] + 0.587 * pixels_rgb_arr[cur_index + 1] + 0.299 * pixels_rgb_arr[cur_index + 2];
     //printf("curindex: %d ", cur_index);
     for (int i = cur_index; i < cur_index + 3; i++){
       output[i] = greyVal;
@@ -30,9 +30,9 @@ int main(int argc, char *argv[]) {
   static sprite sprite;
   int pixels_read = loadFile(&sprite, argv[1]);
   int size = pixels_read*3;
-  int *x, *y;
-  cudaMallocManaged(&x, sizeof(int) * size);
-  cudaMallocManaged(&y, sizeof(int) * size);
+  uint8_t *x, *y;
+  cudaMallocManaged(&x, sizeof(uint8_t) * size);
+  cudaMallocManaged(&y, sizeof(uint8_t) * size);
   printf("%d\n", pixels_read);
 
   for (int i = 0; i < pixels_read; i++) {
@@ -60,6 +60,8 @@ int main(int argc, char *argv[]) {
   printf("%d ", count);
   printf("\n");
 
+  cudaMemcpy(sprite.p, y, size, cudaMemcpyDeviceToHost);
+  
   bool wrote = writeFile(&sprite, "greyscale_test.bmp");
 
   //printf("%d ", sprite.bpp);
