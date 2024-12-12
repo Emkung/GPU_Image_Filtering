@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
-
+#define BLOCKSIZE 1024
 typedef struct {
   union { int width, w; };
   union { int height, h; };
@@ -15,11 +15,14 @@ extern "C" int loadFile(sprite *sprite, const char *filename);
 extern "C" bool writeFile(sprite *sprite, const int depth, const char *writeFile);
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
-__global__ void RGB_To_Greyscale(int* pixels_rgb_arr, int* output, int size) { //takes in arr with rgb values
+__global__ void RGBToGreyscale(int* pixels_rgb_arr, int* output, int size) { //takes in arr with rgb values
    int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
-   for (int i = 0; i < pixels_read; i++) {
-    //   pixel pixel = sprite.p[i];
-      // printf("R: %d,   G: %d,   B: %d\n", pixel.r, pixel.g, pixel.b);
+   if (cur_index%3 == 0){
+    int greyVal = 0.114*pixels_rgb_arr[cur_index] + 0.587 * pixels_rgb_arr[cur_index + 1] + 0.299 * pixels_rgb_arr[cur_index + 2];
+    //printf("curindex: %d ", cur_index);
+    for (int i = cur_index; i < cur_index + 3; i++){
+      output[i] = greyVal;
+    }
    }
 }
 
@@ -28,8 +31,8 @@ int main(int argc, char *argv[]) {
   int pixels_read = loadFile(&sprite, argv[1]);
   int size = pixels_read*3;
   int *x, *y;
-  cudaMallocManaged(&x, sizeof(size) * size);
-  cudaMallocManaged(&x, sizeof(size) * size);
+  cudaMallocManaged(&x, sizeof(int) * size);
+  cudaMallocManaged(&y, sizeof(int) * size);
   printf("%d\n", pixels_read);
 
   for (int i = 0; i < pixels_read; i++) {
@@ -41,15 +44,20 @@ int main(int argc, char *argv[]) {
   }
 //  printf("\n");
 
-  //MatrixMulOnDevice<<<1, 128>>>(x, y, z, size);
+  int blockNum = ceil(size/BLOCKSIZE);
+  RGBToGreyscale<<<blockNum, BLOCKSIZE>>>(x, y, size);
 
   printf("%s\n", cudaGetErrorString(cudaGetLastError()));
 
-  //cudaDeviceSynchronize();
-
+  cudaDeviceSynchronize();
+  int count = 0;
   for (int i = 0; i < size; i++) {
-      printf("%d ", x[i]);
+    if (y[i] == 0){
+       count += 1;
+    }
+    printf("%d ", y[i]);
   }
+  printf("%d ", count);
   printf("\n");
   //printf("%d ", sprite.bpp);
 //  printf("\n");
