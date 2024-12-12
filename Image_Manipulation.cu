@@ -18,11 +18,11 @@ extern "C" bool writeFile(sprite *sprite, const char *writeFile);
 __global__ void RGBToGreyscale(uint8_t* pixels_rgb_arr, uint8_t* output, int size) { //takes in arr with rgb values
    int cur_index = blockIdx.x * blockDim.x + threadIdx.x;
    if (cur_index%3 == 0){
-    uint8_t greyVal = 0.114*pixels_rgb_arr[cur_index] + 0.587 * pixels_rgb_arr[cur_index + 1] + 0.299 * pixels_rgb_arr[cur_index + 2];
-    //printf("curindex: %d ", cur_index);
-    for (int i = cur_index; i < cur_index + 3; i++){
-      output[i] = greyVal;
-    }
+     uint8_t greyVal = 0.114*pixels_rgb_arr[cur_index] + 0.587 * pixels_rgb_arr[cur_index + 1] + 0.299 * pixels_rgb_arr[cur_index + 2];
+     //printf("curindex: %d ", cur_index);
+     for (int i = cur_index; i < cur_index + 3; i++){
+       output[i] = greyVal;
+     }
    }
 }
 
