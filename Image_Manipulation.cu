@@ -59,10 +59,14 @@ int main(int argc, char *argv[]) {
   }
   printf("%d ", count);
   printf("\n");
+
+  bool wrote = writeFile(&sprite, "greyscale_test.bmp");
+
   //printf("%d ", sprite.bpp);
 //  printf("\n");
   free(sprite.p);
   cudaFree(x);
+  cudaFree(y);
 
   return 0;
 }
