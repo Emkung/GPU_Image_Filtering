@@ -12,7 +12,7 @@ typedef struct {
 
 extern "C" int loadFile(sprite *sprite, const char *filename);
 
-extern "C" bool writeFile(sprite *sprite, const int depth, const char *writeFile);
+extern "C" bool writeFile(sprite *sprite, const char *writeFile);
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
 __global__ void RGBToGreyscale(int* pixels_rgb_arr, int* output, int size) { //takes in arr with rgb values
