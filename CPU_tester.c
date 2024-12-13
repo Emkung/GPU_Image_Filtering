@@ -18,12 +18,14 @@ int main(int argc, char *argv[]){
   int pixels_read = loadFile(&sprite, argv[1]);
   printf("%d\n", pixels_read);
 
+  // test reading
   int spriteBytes = pixels_read*sprite.bpp;
   for (int i = 0; i < spriteBytes; i+=3) {
     printf("R: %d,   G: %d,   B: %d\n", sprite.p[i+2], sprite.p[i+1], sprite.p[i]);
   }
 
-  bool wrote = writeFile(&sprite, "write_test.bmp");
+  // write back out the same file
+  bool wrote = writeFile(&sprite, "outputs/write_test.bmp");
   wrote ? printf("\nSuccess!\n") : printf("\nNeeds Debugging T-T\n");
   
   free(sprite.p);

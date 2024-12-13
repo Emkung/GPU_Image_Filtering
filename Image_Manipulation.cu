@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
   // write file out
   cudaMemcpy(sprite.p, out_pixels, size, cudaMemcpyDeviceToHost);
-  bool wrote = writeFile(&sprite, "greyscale_test.bmp"); // TODO accept a second CL arg for writeout
+  bool wrote = writeFile(&sprite, "outputs/greyscale_test.bmp"); // TODO accept second CL arg
 
   // freedom!!
   free(sprite.p);
