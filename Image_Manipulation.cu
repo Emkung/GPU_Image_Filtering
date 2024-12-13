@@ -17,10 +17,10 @@ TODO insert __device__ method to alter greyscale method:
   use a switch to submit the greyscale calculation with the method selected
  */
 
-// loads .bmp into provided sprite
+/** loads .bmp into provided sprite */
 extern "C" int loadFile(sprite *sprite, const char *filename);
 
-// writes provided sprite into new bmp
+/** writes provided sprite into new bmp */
 extern "C" bool writeFile(sprite *sprite, const char *writeFile);
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
@@ -70,12 +70,9 @@ int main(int argc, char *argv[]) {
   cudaMemcpy(sprite.p, out_pixels, size, cudaMemcpyDeviceToHost);
   bool wrote = writeFile(&sprite, "outputs/greyscale_test.bmp"); // TODO accept second CL arg
 
-  int count = 0;
   for (int i = 0; i < size; i++) {
-    if (sprite.p[i] == 0){ count += 1; } // count # of 0s
     printf("%d ", sprite.p[i]); // print output to make sure it looks right
   }
-  printf("\n0s: %d\n", count);
 
   // freedom!!
   free(sprite.p);
