@@ -42,7 +42,11 @@ DAY 7 - 12/11/24 - 4:00 PM - 6:00 PM
 - Get all pixels in one array in Cuda
 - Starting GPU method and made RGB values' reading processes consistent across the CPU Reader
 
-DAY 8 - 12/12/24 - 4:00 PM - 6:00 PM
+DAY 8.1 - 12/12/24 - 4:00 PM - 6:00 PM
 - Project grayscaler fully functional!
 - GPU File Reader complete
 - Debugging required
+
+DAY 8.2 - 12/12/24 - 6:00 PM - 8:00 PM JADE LILIAN UPDATE
+- Debugged successfully.
+- Project cleaned up and made legible with image inputs and outputs subfolders

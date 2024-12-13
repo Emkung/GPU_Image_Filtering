@@ -25,18 +25,19 @@ extern "C" bool writeFile(sprite *sprite, const char *writeFile);
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
 __global__ void RGBToGreyscale(uint8_t* pixels_rgb_arr, uint8_t* output, int size, int depth) { //takes in arr with rgb values
-  int cur_index = depth * (blockIdx.x * blockDim.x +threadIdx.x);
-  if (cur_index < size;){
+  int index = depth * (blockIdx.x*blockDim.x +threadIdx.x);
+
+  if (index+depth <= size){
+    
     // math
-    uint8_t greyVal = 0.114*pixels_rgb_arr[cur_index] // 0.114*b
-      + 0.587 * pixels_rgb_arr[cur_index + 1] // 0.587*g
-      + 0.299 * pixels_rgb_arr[cur_index + 2]; // 0.299*r
+    uint8_t b = pixels_rgb_arr[index], g = pixels_rgb_arr[index+1], r = pixels_rgb_arr[index+2]; 
+    uint8_t greyVal = 0.114*b + 0.587 * g + 0.299 * r;
 
     // write
-    for (int i = cur_index; i < cur_index + 3; i++){
-      output[i] = greyVal; // inefficient writes to global but more efficient than a CPU still
-     }
-   }
+    for (int i = index; i < index + 3; i++){
+      output[i] = greyVal; // inefficient writes?
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -60,26 +61,26 @@ int main(int argc, char *argv[]) {
   //}
 
   // run kernel
-  int blockNum = ceil(pixels_read/BLOCKSIZE);
+  int blockNum = ceil ( (1.*pixels_read) / BLOCKSIZE);
   RGBToGreyscale<<<blockNum, BLOCKSIZE>>>(in_pixels, out_pixels, size, sprite.bpp);
   cudaDeviceSynchronize(); // IMMEDIATELY after opening the kernel >:|
   printf("%s\n", cudaGetErrorString(cudaGetLastError()));
-
-  int count = 0;
-  for (int i = 0; i < size; i++) {
-    if (y[i] == 0){ count += 1; } // count # of 0s
-    printf("%d ", y[i]); // print output to make sure it looks right
-  }
-  printf("\n0s: %d\n", count);
 
   // write file out
   cudaMemcpy(sprite.p, out_pixels, size, cudaMemcpyDeviceToHost);
   bool wrote = writeFile(&sprite, "outputs/greyscale_test.bmp"); // TODO accept second CL arg
 
+  int count = 0;
+  for (int i = 0; i < size; i++) {
+    if (sprite.p[i] == 0){ count += 1; } // count # of 0s
+    printf("%d ", sprite.p[i]); // print output to make sure it looks right
+  }
+  printf("\n0s: %d\n", count);
+
   // freedom!!
   free(sprite.p);
-  cudaFree(in_d);
-  cudaFree(out_d);
+  cudaFree(in_pixels);
+  cudaFree(out_pixels);
 
   return 0;
 }
