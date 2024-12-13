@@ -11,17 +11,17 @@ typedef struct {
   union { uint8_t bytesPerPixel, bpp; }; // number of bytes in each pixel (3 or 4)
 } sprite;
 
-/**
-TODO insert __device__ method to alter greyscale method:
-  submit a symbol (e.g. "NTSC") 
-  use a switch to submit the greyscale calculation with the method selected
- */
-
 /** loads .bmp into provided sprite */
 extern "C" int loadFile(sprite *sprite, const char *filename);
 
 /** writes provided sprite into new bmp */
 extern "C" bool writeFile(sprite *sprite, const char *writeFile);
+
+/**
+TODO insert __device__ method to alter greyscale method:
+  submit a symbol (e.g. "NTSC") 
+  use a switch to submit the greyscale calculation with the method selected
+ */
 
 //NTSC formula: 0.299 ∙ Red + 0.587 ∙ Green + 0.114 ∙ Blue
 __global__ void RGBToGreyscale(uint8_t* pixels_rgb_arr, uint8_t* output, int size, int depth) { //takes in arr with rgb values
