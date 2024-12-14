@@ -8,7 +8,7 @@ using namespace std;
 
 #define BLOCKSIZE 1024
 #define TILEWIDTH 32
-#define RADIUS 16
+#define RADIUS 5
 #define SIGMA 1.5
 __constant__ float MASK[RADIUS+1];
 __constant__ float DENOM;
@@ -92,16 +92,16 @@ __global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out
     float rSum = 0, gSum = 0, bSum = 0;
     for (int i = -rad; i <= rad; i++) {
       /** calculate stuff */
-      float f = 1. / (2*r+1); // {-r, r}->0, 0->r, correct order in between.
+      float f = 1. / (2*rad+1);
       rSum += red[lindex+i] *f;
       gSum += green[lindex+i] *f;
       bSum += blue[lindex+i] *f;
     }
 
     // write
-    output[gindex] = (uint8_t) bSum;
-    output[gindex+1] = (uint8_t) gSum;
-    output[gindex+2] = (uint8_t) rSum;
+    output[gindex] = static_cast<uint8_t>(bSum);
+    output[gindex+1] = static_cast<uint8_t>(gSum);
+    output[gindex+2] = static_cast<uint8_t>(rSum);
   }
 }
 
@@ -176,7 +176,7 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cerr << cudaGetErrorString(cudaGetLastError()) << "\n";
 
   // write file out
-  cudaMemcpy(sprite->p, in_pixels, size, cudaMemcpyDeviceToHost);
+  cudaMemcpy(sprite->p, out_pixels, size, cudaMemcpyDeviceToHost);
 
   // freedom!!
   free(mask);
