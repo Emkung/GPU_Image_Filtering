@@ -8,10 +8,9 @@ using namespace std;
 
 #define BLOCKSIZE 1024
 #define TILEWIDTH 32
-#define RADIUS 5
+#define RADIUS 15
 #define SIGMA 1.5
-__constant__ float MASK[RADIUS+1];
-__constant__ float DENOM;
+__constant__ float MASK[2*RADIUS+1];
 
 typedef struct {
   union { int width, w; }; // width of image
@@ -41,7 +40,7 @@ Performs a blur operation on the input using the provided convolution kernel.
 @param output: Where to put the blurred image
 @param w, @param h, @param depth: The sprite information for use in kernel
 @param r: The 1D Gaussian kernel and its radius. 
-  Kernel submitted through constant memory, uses ONLY first r+1 elements
+  Kernel submitted through constant memory
 @param vertical: Is the input coalesced or should we stride by h within each block?
 */
 __global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out-puts
@@ -92,10 +91,10 @@ __global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out
     float rSum = 0, gSum = 0, bSum = 0;
     for (int i = -rad; i <= rad; i++) {
       /** calculate stuff */
-      float f = 1. / DENOM;
-      rSum += red[lindex+i] *f;
-      gSum += green[lindex+i] *f;
-      bSum += blue[lindex+i] *f;
+      float f = MASK[i+rad];
+      rSum += static_cast<float>(red[lindex+i]) *f;
+      gSum += static_cast<float>(green[lindex+i]) *f;
+      bSum += static_cast<float>(blue[lindex+i]) *f;
     }
 
     // write
@@ -105,35 +104,30 @@ __global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out
   }
 }
 
-/**
-Generates the first half +1 elements of a Gaussian kernel
-Because Gaussian kernels are symmetric, this can be extrapolated to a full kernel, and will be later.
-Done this way because there's fewer CPU math operations this way T-T
-  and also i'm a massochist or smth idk
- */
+/** Generates a Gaussian kernel */
 __host__ float* gaussianKernel(const int r, const float sigma) {
-  float* out = (float*) malloc ( (r+1)*sizeof(float) );
+  float* out = (float*) malloc ( (2*r+1)*sizeof(float) );
   float s = 2*sigma*sigma;
   
   float sum = 0.; // for normalizing
-  for (int x = -r; x <= 0; x++) { // only use first half of kernel for calculations
+  for (int x = -r; x <= r; x++) { // only use first half of kernel for calculations
     out[x+r] = exp(-(x*x) / s) / (M_PI * s);
-    sum += x==0 ? out[x+r] : 2*out[x+r];
+    sum += out[x+r];
   }
 
-  for (int i = 0; i <= r; i++) {
+  for (int i = 0; i <= 2*r; i++) {
     out[i] /= sum; // normalize
   }
 
   return out;
 }
 
-/** Performs a blur operation on the input using a flat 1/r^2 convolution kernel */
+/** Generates a flat 1/(2r+1) convolution kernel */
 __host__ float* flatKernel(const int r) {
-  float* out = (float*) malloc ( (r+1)*sizeof(float) );
+  float* out = (float*) malloc ( (2*r+1)*sizeof(float) );
 
-  for (int i = 0; i <=r; i++) {
-    out[i] = 1 / (2*r+1);
+  for (int i = 0; i <= 2*r; i++) {
+    out[i] = 1. / (2*r+1);
   }
 
   return out;
@@ -159,29 +153,23 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cudaMemcpy(in_pixels, sprite->p, size, cudaMemcpyHostToDevice);
 
   // run kernel
-  //float* mask = flatKernel(r);
-  //cudaMemcpyToSymbol(MASK, mask, (r+1)*sizeof(float));
-  float denom = 2*r + 1;
-  cudaMemcpyToSymbol(DENOM, &denom, sizeof(float)); 
-  //int blockX = ceil ( (1.*sprite.w) / TILEWIDTH ), blockY = ceil ( (1.*sprite.h) / TILEWIDTH );
-  //int xWidth = TILEWIDTH < sprite.w ? TILEWIDTH : sprite.w, yWidth = TILEWIDTH < sprite.h ? TILEWIDTH : sprite.h;
-  //dim3 dimGrid( blockX, blockY, 1);
-  //dim3 dimBlock( xWidth, yWidth, 1);
+  float* mask = gaussianKernel(r, sig);
+  cudaMemcpyToSymbol(MASK, mask, (2*r+1)*sizeof(float));
   gaussianBlurLine<<<sprite->h, sprite->w>>>(in_pixels, out_pixels,
 					     sprite->w, sprite->h, sprite->bpp,
 					     r, false);
   cudaDeviceSynchronize(); // IMMEDIATELY after opening the kernel >:|
-  //gaussianBlurLine<<<sprite->w, sprite->h>>>(out_pixels, in_pixels, // swap so output goes back in
-  //				     sprite->h, sprite->w, sprite->bpp,
-  //					     r, true);
-  //cudaDeviceSynchronize();
+  gaussianBlurLine<<<sprite->w, sprite->h>>>(out_pixels, in_pixels, // swap so output goes back in
+					     sprite->h, sprite->w, sprite->bpp,
+  					     r, true);
+  cudaDeviceSynchronize();
   cerr << cudaGetErrorString(cudaGetLastError()) << "\n";
 
   // write file out
   cudaMemcpy(sprite->p, out_pixels, size, cudaMemcpyDeviceToHost);
 
   // freedom!!
-  //  free(mask);
+  free(mask);
   cudaFree(in_pixels);
   cudaFree(out_pixels);
   return true;
