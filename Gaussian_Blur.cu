@@ -84,17 +84,19 @@ __global__ void gaussianBlurWidth(uint8_t* input, uint8_t* output, // in- and ou
     __syncthreads(); // patience
 
     // math
-    float rSum = 0, gSum = 0, bSum = 0;
-    for (int i = -rad; i <= rad; i++) {
+    //    float rSum = 0, gSum = 0, bSum = 0;
+    //for (int i = -rad; i <= rad; i++) {
       /** calculate stuff */
-      float f = MASK[pos(pos(i)-rad)]; // {-r, r}->0, 0->r, correct order between
-      rSum += f*red[lindex+i];
-      gSum += f*green[lindex+i];
-      bSum += f*blue[lindex+i];
-    }
+      //float f = MASK[pos(pos(i)-rad)]; // {-r, r}->0, 0->r, correct order in between.
+      //rSum += f*red[lindex+i];
+      //gSum += f*green[lindex+i];
+      //bSum += f*blue[lindex+i];
+    //}
 
     // write
-    output[gindex] = (uint8_t) bSum; output[gindex+1] = (uint8_t) gSum; output[gindex+2] = (uint8_t) rSum;
+    output[gindex] = (uint8_t) blue[lindex]; //bSum;
+    output[gindex+1] = (uint8_t) green[lindex]; //gsum;
+    output[gindex+2] = (uint8_t) red[lindex]; //rSum;  
   }
 }
 
@@ -141,17 +143,19 @@ __global__ void gaussianBlurHeight(uint8_t* input, uint8_t* output, // in- and o
     __syncthreads(); // patience
 
     // math
-    float rSum = 0, gSum = 0, bSum = 0;
-    for (int i = -rad; i <= rad; i++) {
+    //    float rSum = 0, gSum = 0, bSum = 0;
+    //for (int i = -rad; i <= rad; i++) {
       /** calculate stuff */
-      float f = MASK[pos(pos(i)-rad)]; // {-r, r}->0, 0->r, correct order in between.
-      rSum += f*red[lindex+i];
-      gSum += f*green[lindex+i];
-      bSum += f*blue[lindex+i];
-    }
+      //float f = MASK[pos(pos(i)-rad)]; // {-r, r}->0, 0->r, correct order in between.
+      //rSum += f*red[lindex+i];
+      //gSum += f*green[lindex+i];
+      //bSum += f*blue[lindex+i];
+    //}
 
     // write
-    output[gindex] = (uint8_t) bSum; output[gindex+1] = (uint8_t) gSum; output[gindex+2] = (uint8_t) rSum;
+    output[gindex] = (uint8_t) blue[lindex]; //bSum;
+    output[gindex+1] = (uint8_t) green[lindex]; //gsum;
+    output[gindex+2] = (uint8_t) red[lindex]; //rSum;
   }
 }
 
@@ -216,11 +220,6 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
 
   // write file out
   cudaMemcpy(sprite->p, in_pixels, size, cudaMemcpyDeviceToHost);
-
-  for (int i = 0; i <= r; i++) {
-    cout << mask[i] << " ";
-  }
-  cout << endl;
 
   // freedom!!
   free(mask);
