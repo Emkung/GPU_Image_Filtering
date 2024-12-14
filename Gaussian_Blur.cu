@@ -8,8 +8,8 @@ using namespace std;
 
 #define BLOCKSIZE 1024
 #define TILEWIDTH 32
-#define RADIUS 1
-#define SIGMA 1.
+#define RADIUS 16
+#define SIGMA 1.5
 __constant__ float MASK[RADIUS+1];
 __constant__ float DENOM;
 
