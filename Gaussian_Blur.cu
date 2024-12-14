@@ -49,15 +49,15 @@ __global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out
 				   const bool vertical // are we reading vertically or horizontally
 				   ){
   // memory caches
-  int radw = rad; if (vertical) { radw *= h; }
   __shared__ uint8_t red[BLOCKSIZE + 2*RADIUS]; // shared arrays with halo.
   __shared__ uint8_t green[BLOCKSIZE + 2*RADIUS]; // greens
   __shared__ uint8_t blue[BLOCKSIZE + 2*RADIUS]; // blues
+  int radw = rad; if (vertical) { radw *= h; }
   int lindex = threadIdx.x + rad;
 
   if (lindex-rad < w && blockIdx.x < h){
     // for now, block size has to be at least h
-    int gindex = vertical ? depth * (blockIdx.x + threadIdx.x*w) : depth * (blockIdx.x*w + threadIdx.x); 
+    int gindex = vertical ? depth * (blockIdx.x + threadIdx.x*h) : depth * (blockIdx.x*w + threadIdx.x); 
     
     // load into shared memory
     uint8_t b = input[gindex], g = input[gindex+1], r = input[gindex+2];
