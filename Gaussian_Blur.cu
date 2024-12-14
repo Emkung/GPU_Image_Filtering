@@ -166,7 +166,7 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cerr << cudaGetErrorString(cudaGetLastError()) << "\n";
 
   // write file out
-  cudaMemcpy(sprite->p, out_pixels, size, cudaMemcpyDeviceToHost);
+  cudaMemcpy(sprite->p, in_pixels, size, cudaMemcpyDeviceToHost);
 
   // freedom!!
   free(mask);
