@@ -155,11 +155,6 @@ __global__ void gaussianBlurHeight(uint8_t* input, uint8_t* output, // in- and o
   }
 }
 
-/** Performs a blur operation on the input using a flat 1/r^2 convolution kernel */
-__global__ void flatBlur(uint8_t* input, uint8_t* output) {
-  /** ok i lied not really */
-}
-
 /**
 Generates the first half +1 elements of a Gaussian kernel
 Because Gaussian kernels are symmetric, this can be extrapolated to a full kernel, and will be later.
@@ -210,23 +205,34 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   //dim3 dimGrid( blockX, blockY, 1);
   //dim3 dimBlock( xWidth, yWidth, 1);
   gaussianBlurWidth<<<sprite->h, sprite->w>>>(in_pixels, out_pixels,
-					      sprite->w, sprite->h, sprite->bpp,
-					      r);
+  					      sprite->w, sprite->h, sprite->bpp,
+  					      r);
   cudaDeviceSynchronize(); // IMMEDIATELY after opening the kernel >:|
   gaussianBlurHeight<<<sprite->w, sprite->h>>>(out_pixels, in_pixels, // swap so output goes back in
-					       sprite->w, sprite->h, sprite->bpp,
-					       r);
+  					       sprite->w, sprite->h, sprite->bpp,
+  					       r);
   cudaDeviceSynchronize();
   cerr << cudaGetErrorString(cudaGetLastError()) << "\n";
 
   // write file out
   cudaMemcpy(sprite->p, in_pixels, size, cudaMemcpyDeviceToHost);
 
+  for (int i = 0; i <= r; i++) {
+    cout << mask[i] << " ";
+  }
+  cout << endl;
+
   // freedom!!
   free(mask);
   cudaFree(in_pixels);
   cudaFree(out_pixels);
   return true;
+}
+
+/** Performs a blur operation on the input using a flat 1/r^2 convolution kernel */
+__host__ bool flatBlur(uint8_t* input, uint8_t* output) {
+  /** ok i lied not really */
+  return false;
 }
 
 int main(int argc, char *argv[]) {
@@ -244,7 +250,7 @@ int main(int argc, char *argv[]) {
   bool wrote = writeFile(&sprite, "outputs/blur_test.bmp"); // TODO accept second CL arg
 
   for (int i = 0; i < size; i++) {
-    cout << sprite.p[i] << " "; // print output to make sure it looks right
+    cout << (int) sprite.p[i] << " "; // print output to make sure it looks right
   }
   cout << "\n";
 
