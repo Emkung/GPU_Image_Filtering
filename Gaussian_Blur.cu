@@ -8,7 +8,7 @@ using namespace std;
 
 #define BLOCKSIZE 1024
 #define TILEWIDTH 32
-#define RADIUS 15
+#define RADIUS 100
 #define SIGMA 1.5
 __constant__ float MASK[2*RADIUS+1];
 
