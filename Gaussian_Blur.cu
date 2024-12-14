@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
-//#include <stdio.h>
+#include <stdio.h>
 #include <cmath>
 #include <iostream>
 using namespace std;
@@ -10,7 +10,7 @@ using namespace std;
 #define TILEWIDTH 32
 #define RADIUS 1
 #define SIGMA 1.
-__constant__ double MASK[RADIUS+1];
+__constant__ float MASK[RADIUS+1];
 
 typedef struct {
   union { int width, w; }; // width of image
@@ -161,11 +161,11 @@ Because Gaussian kernels are symmetric, this can be extrapolated to a full kerne
 Done this way because there's fewer CPU math operations this way T-T
   and also i'm a massochist or smth idk
  */
-__host__ double* gaussianKernel(const int r, const float sigma) {
-  double* out = (double*) malloc ( (r+1)*sizeof(double) );
-  double s = 2*sigma*sigma;
+__host__ float* gaussianKernel(const int r, const float sigma) {
+  float* out = (float*) malloc ( (r+1)*sizeof(double) );
+  float s = 2*sigma*sigma;
   
-  double sum = 0.; // for normalizing
+  float sum = 0.; // for normalizing
   for (int x = -r; x <= 0; x++) { // only use first half of kernel for calculations
     out[x+r] = exp(-(x*x) / s) / (M_PI * s);
     sum += x==0 ? out[x+r] : 2*out[x+r];
@@ -198,8 +198,8 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cudaMemcpy(in_pixels, sprite->p, size, cudaMemcpyHostToDevice);
 
   // run kernel
-  double* mask = gaussianKernel(r, sig);
-  cudaMemcpyToSymbol(MASK, mask, (r+1)*sizeof(double));
+  float* mask = gaussianKernel(r, sig);
+  cudaMemcpyToSymbol(MASK, mask, (r+1)*sizeof(float));
   //int blockX = ceil ( (1.*sprite.w) / TILEWIDTH ), blockY = ceil ( (1.*sprite.h) / TILEWIDTH );
   //int xWidth = TILEWIDTH < sprite.w ? TILEWIDTH : sprite.w, yWidth = TILEWIDTH < sprite.h ? TILEWIDTH : sprite.h;
   //dim3 dimGrid( blockX, blockY, 1);
