@@ -92,7 +92,7 @@ __global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out
     float rSum = 0, gSum = 0, bSum = 0;
     for (int i = -rad; i <= rad; i++) {
       /** calculate stuff */
-      float f = 1. / (2*rad+1);
+      float f = 1. / DENOM;
       rSum += red[lindex+i] *f;
       gSum += green[lindex+i] *f;
       bSum += blue[lindex+i] *f;
@@ -159,8 +159,10 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cudaMemcpy(in_pixels, sprite->p, size, cudaMemcpyHostToDevice);
 
   // run kernel
-  float* mask = flatKernel(r);
-  cudaMemcpyToSymbol(MASK, mask, (r+1)*sizeof(float));
+  //float* mask = flatKernel(r);
+  //cudaMemcpyToSymbol(MASK, mask, (r+1)*sizeof(float));
+  float denom = 2*r + 1;
+  cudaMemcpyToSymbol(DENOM, &denom, sizeof(float)); 
   //int blockX = ceil ( (1.*sprite.w) / TILEWIDTH ), blockY = ceil ( (1.*sprite.h) / TILEWIDTH );
   //int xWidth = TILEWIDTH < sprite.w ? TILEWIDTH : sprite.w, yWidth = TILEWIDTH < sprite.h ? TILEWIDTH : sprite.h;
   //dim3 dimGrid( blockX, blockY, 1);
@@ -179,7 +181,7 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cudaMemcpy(sprite->p, out_pixels, size, cudaMemcpyDeviceToHost);
 
   // freedom!!
-  free(mask);
+  //  free(mask);
   cudaFree(in_pixels);
   cudaFree(out_pixels);
   return true;
