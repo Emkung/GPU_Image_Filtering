@@ -11,6 +11,7 @@ using namespace std;
 #define RADIUS 1
 #define SIGMA 1.
 __constant__ float MASK[RADIUS+1];
+__constant__ float DENOM;
 
 typedef struct {
   union { int width, w; }; // width of image
@@ -27,8 +28,8 @@ extern "C" bool writeFile(sprite *sprite, const char *writeFile);
 
 /** provides the absolute value of an input */
 __device__ int pos(int number) {
-  int out = number << 1; // fancy bitfuckery erases sign bit
-  return out >> 1; // now sign bit is 0!!
+  int out = number & 0x7FFFFFFF; // fancy bitfuckery erases sign bit
+  return out; // now sign bit is 0!!
 }
 
 /** 
@@ -39,21 +40,25 @@ Performs a blur operation on the input using the provided convolution kernel.
 @param input: The input image
 @param output: Where to put the blurred image
 @param w, @param h, @param depth: The sprite information for use in kernel
-@param kernel, @param r: The 1D Gaussian kernel and its radius. 
-  Kernel requires FIRST r+1 elements to be submitted. Because kernels must be symmetrical, we only use the first r+1.
+@param r: The 1D Gaussian kernel and its radius. 
+  Kernel submitted through constant memory, uses ONLY first r+1 elements
+@param vertical: Is the input coalesced or should we stride by h within each block?
 */
-__global__ void gaussianBlurWidth(uint8_t* input, uint8_t* output, // in- and out-puts
-				  const int w, const int h, const int depth, // width, height, and depth of the image
-				  const int rad // kernel radius. kernel array is tied to constant memory at MASK.
-				  ){
+__global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out-puts
+				   const int w, const int h, const int depth, // width, height, and depth of the image
+				   const int rad, // kernel radius
+				   const bool vertical // are we reading vertically or horizontally
+				   ){
   // memory caches
-  __shared__ uint8_t red[BLOCKSIZE + 2*RADIUS]; // shared arrays with halo. must be initialized to max possible
+  int radw = rad; if (vertical) { radw *= h; }
+  __shared__ uint8_t red[BLOCKSIZE + 2*RADIUS]; // shared arrays with halo.
   __shared__ uint8_t green[BLOCKSIZE + 2*RADIUS]; // greens
   __shared__ uint8_t blue[BLOCKSIZE + 2*RADIUS]; // blues
   int lindex = threadIdx.x + rad;
-  
-  if (lindex-rad < w && blockIdx.x < h){ // stay in range
-    int gindex = depth * (blockIdx.x*w + threadIdx.x); // pretend blockDim.x == w, because for now it does
+
+  if (lindex-rad < w && blockIdx.x < h){
+    // for now, block size has to be at least h
+    int gindex = vertical ? depth * (blockIdx.x + threadIdx.x*w) : depth * (blockIdx.x*w + threadIdx.x); 
     
     // load into shared memory
     uint8_t b = input[gindex], g = input[gindex+1], r = input[gindex+2];
@@ -61,7 +66,7 @@ __global__ void gaussianBlurWidth(uint8_t* input, uint8_t* output, // in- and ou
 
     // halo handling
     if (lindex < 2*rad) {
-      int hindex = gindex - (r*depth); // halo index
+      int hindex = gindex - (radw*depth); // halo index
       if (hindex < 0) { // use what we've already read
 	int iout = 2*rad - lindex - 1;
 	blue[iout] = b; green[iout] = g; red[iout] = r; // no need to read new vals
@@ -70,9 +75,9 @@ __global__ void gaussianBlurWidth(uint8_t* input, uint8_t* output, // in- and ou
 	blue[lindex-rad] = bh; green[lindex-rad+1] = gh; red[lindex-rad+2] = rh;
       }
     }
-    if (lindex >= blockDim.x) { // these are separated to handle r's greater than the block size.
-      int hindex = gindex + (rad*depth); // halo index
-      if (hindex >= w) { // swap to h on next kernel
+    if (lindex >= blockDim.x) { // these are separated to handle r's greater than half the block size.
+      int hindex = gindex + (radw*depth); // halo index
+      if (hindex >= w) { // swap h and w on second call
 	int mod = w-1 - lindex+rad; // in 0..(r-1), where highest possible = 0, lowest =(r-1)
 	int iout = w+rad + mod;
 	blue[iout] = b; green[iout] = g; red[iout] = r;
@@ -84,78 +89,19 @@ __global__ void gaussianBlurWidth(uint8_t* input, uint8_t* output, // in- and ou
     __syncthreads(); // patience
 
     // math
-    //    float rSum = 0, gSum = 0, bSum = 0;
-    //for (int i = -rad; i <= rad; i++) {
+    float rSum = 0, gSum = 0, bSum = 0;
+    for (int i = -rad; i <= rad; i++) {
       /** calculate stuff */
-      //float f = MASK[pos(pos(i)-rad)]; // {-r, r}->0, 0->r, correct order in between.
-      //rSum += f*red[lindex+i];
-      //gSum += f*green[lindex+i];
-      //bSum += f*blue[lindex+i];
-    //}
+      float f = 1. / (2*r+1); // {-r, r}->0, 0->r, correct order in between.
+      rSum += red[lindex+i] *f;
+      gSum += green[lindex+i] *f;
+      bSum += blue[lindex+i] *f;
+    }
 
     // write
-    output[gindex] = (uint8_t) blue[lindex]; //bSum;
-    output[gindex+1] = (uint8_t) green[lindex]; //gsum;
-    output[gindex+2] = (uint8_t) red[lindex]; //rSum;  
-  }
-}
-
-__global__ void gaussianBlurHeight(uint8_t* input, uint8_t* output, // in- and out-puts
-				   const int w, const int h, const int depth, // width, height, and depth of the image
-				   const int rad // kernel radius
-				   ){
-  // memory caches
-  __shared__ uint8_t red[BLOCKSIZE + 2*RADIUS]; // shared arrays with halo.
-  __shared__ uint8_t green[BLOCKSIZE + 2*RADIUS]; // greens
-  __shared__ uint8_t blue[BLOCKSIZE + 2*RADIUS]; // blues
-  int lindex = threadIdx.x + rad;
-
-  if (lindex-rad < h && blockIdx.x < w){
-
-    int gindex = depth * (blockIdx.x + threadIdx.x*w); // for now, block size has to be at least h
-    
-    // load into shared memory
-    uint8_t b = input[gindex], g = input[gindex+1], r = input[gindex+2];
-    blue[lindex] = b; green[lindex] = g; red[lindex] = r;
-
-    // halo handling
-    if (lindex < 2*rad) {
-      int hindex = gindex - (rad*w*depth); // halo index
-      if (hindex < 0) { // use what we've already read
-	int iout = 2*rad - lindex - 1;
-	blue[iout] = b; green[iout] = g; red[iout] = r; // no need to read new vals
-      } else { // play fetch
-	uint8_t bh = input[hindex], gh = input[hindex+1], rh = input[hindex+2]; // handle halos normally
-	blue[lindex-rad] = bh; green[lindex-rad+1] = gh; red[lindex-rad+2] = rh;
-      }
-    }
-    if (lindex >= blockDim.x) { // these are separated to handle r's greater than the block size.
-      int hindex = gindex + (rad*w*depth); // halo index
-      if (hindex >= h) { // swap to h on next kernel
-	int mod = h-1 - lindex+rad; // in 0..(r-1), where highest possible = 0, lowest =(r-1)
-	int iout = h+rad + mod;
-	blue[iout] = b; green[iout] = g; red[iout] = r;
-      } else {
-	uint8_t bh = input[hindex], gh = input[hindex+1], rh = input[hindex+2]; // handle halos normally
-	blue[lindex+rad] = bh; green[lindex+rad+1] = gh; red[lindex+rad+2] = rh;
-      }
-    }
-    __syncthreads(); // patience
-
-    // math
-    //    float rSum = 0, gSum = 0, bSum = 0;
-    //for (int i = -rad; i <= rad; i++) {
-      /** calculate stuff */
-      //float f = MASK[pos(pos(i)-rad)]; // {-r, r}->0, 0->r, correct order in between.
-      //rSum += f*red[lindex+i];
-      //gSum += f*green[lindex+i];
-      //bSum += f*blue[lindex+i];
-    //}
-
-    // write
-    output[gindex] = (uint8_t) blue[lindex]; //bSum;
-    output[gindex+1] = (uint8_t) green[lindex]; //gsum;
-    output[gindex+2] = (uint8_t) red[lindex]; //rSum;
+    output[gindex] = (uint8_t) bSum;
+    output[gindex+1] = (uint8_t) gSum;
+    output[gindex+2] = (uint8_t) rSum;
   }
 }
 
@@ -166,7 +112,7 @@ Done this way because there's fewer CPU math operations this way T-T
   and also i'm a massochist or smth idk
  */
 __host__ float* gaussianKernel(const int r, const float sigma) {
-  float* out = (float*) malloc ( (r+1)*sizeof(double) );
+  float* out = (float*) malloc ( (r+1)*sizeof(float) );
   float s = 2*sigma*sigma;
   
   float sum = 0.; // for normalizing
@@ -177,6 +123,17 @@ __host__ float* gaussianKernel(const int r, const float sigma) {
 
   for (int i = 0; i <= r; i++) {
     out[i] /= sum; // normalize
+  }
+
+  return out;
+}
+
+/** Performs a blur operation on the input using a flat 1/r^2 convolution kernel */
+__host__ float* flatKernel(const int r) {
+  float* out = (float*) malloc ( (r+1)*sizeof(float) );
+
+  for (int i = 0; i <=r; i++) {
+    out[i] = 1 / (2*r+1);
   }
 
   return out;
@@ -202,20 +159,20 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cudaMemcpy(in_pixels, sprite->p, size, cudaMemcpyHostToDevice);
 
   // run kernel
-  float* mask = gaussianKernel(r, sig);
+  float* mask = flatKernel(r);
   cudaMemcpyToSymbol(MASK, mask, (r+1)*sizeof(float));
   //int blockX = ceil ( (1.*sprite.w) / TILEWIDTH ), blockY = ceil ( (1.*sprite.h) / TILEWIDTH );
   //int xWidth = TILEWIDTH < sprite.w ? TILEWIDTH : sprite.w, yWidth = TILEWIDTH < sprite.h ? TILEWIDTH : sprite.h;
   //dim3 dimGrid( blockX, blockY, 1);
   //dim3 dimBlock( xWidth, yWidth, 1);
-  gaussianBlurWidth<<<sprite->h, sprite->w>>>(in_pixels, out_pixels,
-  					      sprite->w, sprite->h, sprite->bpp,
-  					      r);
+  gaussianBlurLine<<<sprite->h, sprite->w>>>(in_pixels, out_pixels,
+					     sprite->w, sprite->h, sprite->bpp,
+					     r, false);
   cudaDeviceSynchronize(); // IMMEDIATELY after opening the kernel >:|
-  gaussianBlurHeight<<<sprite->w, sprite->h>>>(out_pixels, in_pixels, // swap so output goes back in
-  					       sprite->w, sprite->h, sprite->bpp,
-  					       r);
-  cudaDeviceSynchronize();
+  //gaussianBlurLine<<<sprite->w, sprite->h>>>(out_pixels, in_pixels, // swap so output goes back in
+  //				     sprite->h, sprite->w, sprite->bpp,
+  //					     r, true);
+  //cudaDeviceSynchronize();
   cerr << cudaGetErrorString(cudaGetLastError()) << "\n";
 
   // write file out
@@ -226,12 +183,6 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   cudaFree(in_pixels);
   cudaFree(out_pixels);
   return true;
-}
-
-/** Performs a blur operation on the input using a flat 1/r^2 convolution kernel */
-__host__ bool flatBlur(uint8_t* input, uint8_t* output) {
-  /** ok i lied not really */
-  return false;
 }
 
 int main(int argc, char *argv[]) {
