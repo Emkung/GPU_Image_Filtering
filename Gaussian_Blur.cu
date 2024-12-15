@@ -8,7 +8,7 @@ using namespace std;
 
 #define BLOCKSIZE 1024
 #define TILEWIDTH 32
-#define RADIUS 100
+#define RADIUS 20
 #define SIGMA 1.5
 __constant__ float MASK[2*RADIUS+1];
 
@@ -54,10 +54,13 @@ __global__ void gaussianBlurLine(uint8_t* input, uint8_t* output, // in- and out
   __shared__ uint8_t blue[BLOCKSIZE + 2*RADIUS]; // blues
   int radw = rad; if (vertical) { radw *= h; }
   int lindex = threadIdx.x + rad;
+  int line = blockIdx.x*blockDim.x % h; // which row or column is this block covering?
+  int tile = blockIdx.x*blockDim.x / h; // how many blocks are above me?
 
   if (lindex-rad < w && blockIdx.x < h){
     // for now, block size has to be at least h
-    int gindex = vertical ? depth * (blockIdx.x + threadIdx.x*h) : depth * (blockIdx.x*w + threadIdx.x); 
+    int gindex = vertical ? depth * (line + h*(tile*h+threadIdx.x)) : depth * (line*w + (tile*h + threadIdx.x));
+    
     
     // load into shared memory
     uint8_t b = input[gindex], g = input[gindex+1], r = input[gindex+2];
@@ -137,10 +140,7 @@ __host__ float* flatKernel(const int r) {
 Runs a full Gaussian blur, start to finish, including copying out from cuda into the provided sprite's pixel list.
  */
 __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
-  if (sprite->w > BLOCKSIZE || sprite->h > BLOCKSIZE) {
-    cerr << "Unable to blur images greater than " << BLOCKSIZE << " in a single dimension.\n";
-    return false;
-  } if (r >= sprite->h || r >= sprite->w) {
+  if (r >= sprite->h || r >= sprite->w) {
     cerr << "Unable to blur images with r > either image dimension.\n";
     return false;
   }
@@ -155,14 +155,18 @@ __host__ bool gaussianBlur(sprite* sprite, const int r, const float sig) {
   // run kernel
   float* mask = gaussianKernel(r, sig);
   cudaMemcpyToSymbol(MASK, mask, (2*r+1)*sizeof(float));
-  gaussianBlurLine<<<sprite->h, sprite->w>>>(in_pixels, out_pixels,
-					     sprite->w, sprite->h, sprite->bpp,
-					     r, false);
-  cudaDeviceSynchronize(); // IMMEDIATELY after opening the kernel >:|
-  gaussianBlurLine<<<sprite->w, sprite->h>>>(out_pixels, in_pixels, // swap so output goes back in
-					     sprite->h, sprite->w, sprite->bpp,
-  					     r, true);
-  cudaDeviceSynchronize();
+  int blocks = ceil ( (1.*sprite->w) / BLOCKSIZE ) *sprite->h;
+  int threads = blocks > 1 ? BLOCKSIZE : sprite->w;
+  gaussianBlurLine<<<blocks, threads>>>(in_pixels, out_pixels,
+					sprite->w, sprite->h, sprite->bpp,
+					r, false);
+  blocks = ceil ( (1.*sprite->h) / BLOCKSIZE ) *sprite->w;
+  threads = blocks > 1 ? BLOCKSIZE : sprite->h;
+  cudaDeviceSynchronize(); // trust me this saves time
+  gaussianBlurLine<<<blocks, threads>>>(out_pixels, in_pixels, // swap so output goes back in
+					sprite->h, sprite->w, sprite->bpp,
+					r, true);
+  //cudaDeviceSynchronize();
   cerr << cudaGetErrorString(cudaGetLastError()) << "\n";
 
   // write file out
@@ -187,7 +191,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   
-  bool wrote = writeFile(&sprite, "outputs/blur_test.bmp"); // TODO accept second CL arg
+  bool wrote = writeFile(&sprite, "outputs/blur_big_test.bmp"); // TODO accept second CL arg
 
   for (int i = 0; i < size; i++) {
     cout << (int) sprite.p[i] << " "; // print output to make sure it looks right
